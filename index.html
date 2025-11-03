@@ -39,15 +39,84 @@
 			image-rendering: pixelated;
 			-ms-interpolation-mode: nearest-neighbor;
 		}
+
+		/* Стили для загрузочного экрана */
+		.loading-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			background: #000000;
+			z-index: 10;
+			color: white;
+			font-family: Arial, sans-serif;
+		}
+
+		.loading-text {
+			font-size: 24px;
+			margin-bottom: 20px;
+			color: #ffffff; /* Оранжевый цвет для текста */
+		}
+
+		.progress-container {
+			width: 300px;
+			height: 20px;
+			background: rgba(255, 255, 255, 0.2);
+			border-radius: 10px;
+			overflow: hidden;
+			position: relative;
+		}
+
+		.progress-bar {
+			width: 0%;
+			height: 100%;
+			background: linear-gradient(90deg, #FF8200, #ffa500);
+			border-radius: 10px;
+			transition: width 0.3s ease;
+			box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+		}
+
+		.progress-percent {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			color: white;
+			font-size: 12px;
+			font-weight: bold;
+			text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+		}
+
+		.hidden {
+			display: none !important;
+		}
 	</style>
 </head>
 
 <body>
 	<div id="gameContainer">
+		<!-- Загрузочный экран -->
+		<div id="loadingOverlay" class="loading-overlay">
+			<div class="loading-text">Loading...</div>
+			<div class="progress-container">
+				<div id="progressBar" class="progress-bar"></div>
+				<div id="progressPercent" class="progress-percent">0%</div>
+			</div>
+		</div>
+
 		<canvas id="unity-canvas" width="720" height="1280" data-pixel-art="false"></canvas>
 		<script src="Build/text web comic.loader.js"></script>
 		<script>
 			var canvas = document.querySelector("#unity-canvas");
+			var loadingOverlay = document.querySelector("#loadingOverlay");
+			var progressBar = document.querySelector("#progressBar");
+			var progressPercent = document.querySelector("#progressPercent");
+
 			var config = {
 				dataUrl: "Build/text web comic.data.unityweb",
 				frameworkUrl: "Build/text web comic.framework.js.unityweb",
@@ -64,11 +133,21 @@
 			} catch (e) {
 				scaleToFit = true;
 			}
+			
 			function progressHandler(progress) {
-				var percent = progress * 100 + '%';
-				canvas.style.background = 'linear-gradient(to right, white, white ' + percent + ', transparent ' + percent + ', transparent) no-repeat center';
+				var percent = progress * 100;
+				var percentText = Math.round(percent) + '%';
+				
+				// Обновляем прогресс-бар
+				progressBar.style.width = percent + '%';
+				progressPercent.textContent = percentText;
+				
+				// Старый стиль для canvas (можно удалить, если не нужен)
+				var gradientPercent = percent + '%';
+				canvas.style.background = 'linear-gradient(to right, #ffa500, #ffa500 ' + gradientPercent + ', transparent ' + gradientPercent + ', transparent) no-repeat center';
 				canvas.style.backgroundSize = '100% 1rem';
 			}
+
 			function onResize() {
 				var container = canvas.parentElement;
 				var w;
@@ -95,10 +174,17 @@
 				container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
 				window.focus();
 			}
+
 			createUnityInstance(canvas, config, progressHandler).then(function (instance) {
 				canvas = instance.Module.canvas;
 				onResize();
+				
+				// Скрываем загрузочный экран после полной загрузки
+				setTimeout(function() {
+					loadingOverlay.classList.add('hidden');
+				}, 500);
 			});
+
 			window.addEventListener('resize', onResize);
 			onResize();
 
